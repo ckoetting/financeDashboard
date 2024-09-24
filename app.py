@@ -29,7 +29,7 @@ default_isins = {
     "Global Equity ETF ISIN": 'IE00B4L5Y983',
     "Emerging Markets ETF ISIN": 'IE00BKM4GZ66',
     "Dividend-Focused ETF ISIN": 'IE00B0M62Q58',
-    "Sector-Specific ETF ISIN": 'US81369Y8030',
+    "Sector-Specific ETF ISIN": 'IE00BGV5VN51',
 }
 
 st.title("Investment Portfolio Dashboard with Monthly Savings Plan")
@@ -49,7 +49,7 @@ with amount_col:
     short_term_investment = st.number_input(
         "Short-Medium Term Investment Amount (€)",
         min_value=0,
-        value=35000,
+        value=30000,
         step=1000,
         format="%d"
     )
