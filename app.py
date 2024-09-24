@@ -4,33 +4,71 @@ import numpy as np
 import yfinance as yf
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime
 
 # Set the page configuration for a wider layout
 st.set_page_config(layout="wide")
 
-
-# Function to map ISIN to Ticker Symbol
-def isin_to_ticker(isin):
-    isin_ticker_map = {
-        # Long-Term Assets
-        'IE00B4L5Y983': 'IWDA.AS',  # iShares Core MSCI World UCITS ETF USD (Acc)
-        'IE00BKM4GZ66': 'EIMI.L',  # iShares Core MSCI EM IMI UCITS ETF
-        'US81369Y8030': 'XLF',  # Financial Select Sector SPDR Fund (Sector ETF)
-        'IE00B0M62Q58': 'ISPA.DE',  # iShares STOXX Global Select Dividend 100 UCITS ETF
+# Function to map ISIN to Ticker Symbol and ETF Links
+def isin_to_ticker_and_link(isin):
+    isin_ticker_link_map = {
+        'IE00B4L5Y983': {
+            'ticker': 'IWDA.AS',
+            'link': 'https://www.ishares.com/de/privatanleger/de/produkte/251882/?referrer=tickerSearch',
+            'name': 'iShares Core MSCI World UCITS ETF USD (Acc)'
+        },
+        'IE00BKM4GZ66': {
+            'ticker': 'EIMI.L',
+            'link': 'https://www.ishares.com/de/privatanleger/de/produkte/264659/?referrer=tickerSearch',
+            'name': 'iShares Core MSCI EM IMI UCITS ETF'
+        },
+        'DE000A0F5UH1': {
+            'ticker': 'ISPA.DE',
+            'link': 'https://www.ishares.com/de/privatanleger/de/produkte/251973/?referrer=tickerSearch#/',
+            'name': 'iShares STOXX Global Select Dividend 100 UCITS ETF'
+        },
+        'IE00BGV5VN51': {
+            'ticker': 'XAIX.DE',
+            'link': 'https://etf.dws.com/de-de/IE00BGV5VN51-artificial-intelligence-big-data-ucits-etf-1c/#downloads',
+            'name': 'Xtrackers Artificial Intelligence & Big Data UCITS ETF'
+        },
         # Add more mappings as needed
     }
-    return isin_ticker_map.get(isin, None)
-
+    return isin_ticker_link_map.get(isin, None)
 
 # Pre-selected ISIN codes
 default_isins = {
-    # Long-Term Investments
     "Global Equity ETF ISIN": 'IE00B4L5Y983',
     "Emerging Markets ETF ISIN": 'IE00BKM4GZ66',
-    "Dividend-Focused ETF ISIN": 'IE00B0M62Q58',
+    "Dividend-Focused ETF ISIN": 'DE000A0F5UH1',
     "Sector-Specific ETF ISIN": 'IE00BGV5VN51',
 }
+
+# Dividend data for DE000A0F5UH1
+dividend_data = pd.DataFrame({
+    'Ex-Tag': [
+        '16.Juli2024', '15.Apr.2024', '16.Jan.2024', '16.Okt.2023', '17.Juli2023',
+        '17.Apr.2023', '16.Jan.2023', '17.Okt.2022', '15.Juli2022', '19.Apr.2022',
+        '17.Jan.2022', '15.Okt.2021', '15.Juli2021', '15.Apr.2021', '15.Jan.2021',
+        '15.Okt.2020', '15.Juli2020', '15.Apr.2020', '15.Jan.2020', '15.Okt.2019',
+        '15.Juli2019', '15.Apr.2019', '15.Jan.2019', '15.Okt.2018', '16.Juli2018',
+        '16.Apr.2018', '02.Jan.2018', '16.Okt.2017', '17.Juli2017', '27.Apr.2017',
+        # Add more dates as needed
+    ],
+    'Gesamtausschüttung': [
+        0.58, 0.17, 0.37, 0.39, 0.70,
+        0.18, 0.36, 0.31, 0.58, 0.21,
+        0.27, 0.29, 0.37, 0.15, 0.19,
+        0.37, 0.27, 0.18, 0.20, 0.26,
+        0.52, 0.22, 0.17, 0.24, 0.49,
+        0.09, 0.16, 0.24, 0.46, 0.23,
+        # Add more amounts as needed
+    ]
+})
+
+# Convert 'Ex-Tag' to datetime and sort by date
+dividend_data['Ex-Tag'] = pd.to_datetime(dividend_data['Ex-Tag'], format='%d.%b.%Y', errors='coerce')
+dividend_data = dividend_data.dropna()
+dividend_data = dividend_data.sort_values('Ex-Tag', ascending=False)
 
 st.title("Investment Portfolio Dashboard with Monthly Savings Plan")
 
@@ -243,10 +281,37 @@ sector_specific_isin = st.text_input(
     value=default_isins["Sector-Specific ETF ISIN"]
 )
 
-msci_global_ticker = isin_to_ticker(msci_global_isin)
-developing_countries_ticker = isin_to_ticker(developing_countries_isin)
-dividend_focused_ticker = isin_to_ticker(dividend_focused_isin)
-sector_specific_ticker = isin_to_ticker(sector_specific_isin)
+msci_global_info = isin_to_ticker_and_link(msci_global_isin)
+developing_countries_info = isin_to_ticker_and_link(developing_countries_isin)
+dividend_focused_info = isin_to_ticker_and_link(dividend_focused_isin)
+sector_specific_info = isin_to_ticker_and_link(sector_specific_isin)
+
+st.write("---")
+
+# Display ETF Links in a Visually Appealing 2x2 Grid
+st.header("ETF Information and Links")
+
+etf_infos = {
+    "Global Equity ETF": msci_global_info,
+    "Emerging Markets ETF": developing_countries_info,
+    "Dividend-Focused ETF": dividend_focused_info,
+    "Sector-Specific ETF": sector_specific_info
+}
+
+etf_list = [(etf_name, info) for etf_name, info in etf_infos.items() if info]
+
+for i in range(0, len(etf_list), 2):
+    cols = st.columns(2)
+    for idx, (etf_name, info) in enumerate(etf_list[i:i+2]):
+        with cols[idx]:
+            st.markdown(f"""
+            <div style="background-color:#f9f9f9; padding: 15px; border-radius:10px; margin-bottom: 10px; border: 1px solid #ddd;">
+                <h3 style="color:#2c3e50;">{etf_name}</h3>
+                <p><strong>Name:</strong> {info['name']}</p>
+                <p><strong>Ticker:</strong> {info['ticker']}</p>
+                <p><a href="{info['link']}" target="_blank">ETF Website</a></p>
+            </div>
+            """, unsafe_allow_html=True)
 
 st.write("---")
 
@@ -263,15 +328,14 @@ for asset, annual_rate in rates.items():
 
 # Collect all ETFs
 etf_tickers = {
-    "Global Equity ETF": msci_global_ticker,
-    "Emerging Markets ETF": developing_countries_ticker,
-    "Dividend-Focused ETF": dividend_focused_ticker,
-    "Sector-Specific ETF": sector_specific_ticker
+    "Global Equity ETF": msci_global_info['ticker'] if msci_global_info else None,
+    "Emerging Markets ETF": developing_countries_info['ticker'] if developing_countries_info else None,
+    "Dividend-Focused ETF": dividend_focused_info['ticker'] if dividend_focused_info else None,
+    "Sector-Specific ETF": sector_specific_info['ticker'] if sector_specific_info else None
 }
 
 # Remove None tickers
 etf_tickers = {k: v for k, v in etf_tickers.items() if v is not None}
-
 
 # Fetch historical returns for ETFs
 @st.cache_data
@@ -286,7 +350,6 @@ def get_etf_annual_stats(ticker):
     std_return = annual_returns.std()
     return mean_return, std_return
 
-
 # Fetch and store annual mean and std returns
 etf_stats = {}
 for etf_name, ticker in etf_tickers.items():
@@ -295,6 +358,15 @@ for etf_name, ticker in etf_tickers.items():
         etf_stats[etf_name] = {'mean': mean_return, 'std': std_return}
     else:
         st.error(f"Data for {etf_name} ({ticker}) is unavailable.")
+
+# Adjust mean return for Dividend-Focused ETF to include dividends
+if 'Dividend-Focused ETF' in etf_stats:
+    # Calculate average annual dividend yield
+    avg_dividend = dividend_data['Gesamtausschüttung'].mean()
+    current_price = yf.Ticker(dividend_focused_info['ticker']).history(period='1d')['Close'].iloc[0]
+    dividend_yield = (avg_dividend * 4) / current_price  # Assuming quarterly dividends
+    # Adjust mean return
+    etf_stats['Dividend-Focused ETF']['mean'] += dividend_yield
 
 # Perform Investment Calculations
 
@@ -553,6 +625,15 @@ if 'simulation_results' in locals():
 else:
     st.warning("Long-term investment results are not available due to insufficient data.")
 
+# Display Dividend Information
+st.header("Dividend Information for Dividend-Focused ETF")
+
+if not dividend_data.empty:
+    st.subheader("Historical Dividends")
+    st.table(dividend_data[['Ex-Tag', 'Gesamtausschüttung']])
+else:
+    st.warning("No dividend data available.")
+
 st.write("""
 ## Understanding Monte Carlo Simulations and Value at Risk (VaR)
 
@@ -565,6 +646,11 @@ Monte Carlo simulations are a mathematical technique used to estimate the possib
   - **Random Sampling**: The simulations generate random returns based on the historical mean and volatility (standard deviation) of each asset.
   - **Multiple Paths**: Each simulation represents a different possible future path your investment could take.
   - **Aggregation**: By running many simulations (e.g., 1,000), we can observe a range of possible outcomes and their probabilities.
+
+### Including Dividends:
+
+- For the Dividend-Focused ETF, dividends have been included in the expected returns.
+- The average dividend yield was calculated from historical dividend payments and added to the mean return.
 
 ### Interpreting the Chart:
 
@@ -600,5 +686,4 @@ Monte Carlo simulations are a mathematical technique used to estimate the possib
 - **Long-Term Perspective**: Investing over a longer horizon generally increases the likelihood of achieving better returns, but it's important to be aware of potential risks along the way.
 
 **Disclaimer**: The projections and simulations are based on historical data and assumptions. They are for illustrative purposes only and do not guarantee future results. Always consider consulting with a financial advisor for personalized advice.
-
 """)
