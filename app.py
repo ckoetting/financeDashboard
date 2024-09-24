@@ -554,21 +554,51 @@ else:
     st.warning("Long-term investment results are not available due to insufficient data.")
 
 st.write("""
-## Understanding Monte Carlo Simulations with Monthly Savings Plan
+## Understanding Monte Carlo Simulations and Value at Risk (VaR)
 
-### Incorporating Monthly Savings:
+### Monte Carlo Simulations:
 
-- **Systematic Investment Plan (SIP):** Regular investments over time can significantly impact the growth of your portfolio due to the compounding effect.
-- **Simulation Adjustments:**
-  - **Cash Flows:** At each time step, monthly contributions are added to the portfolio before applying the simulated return.
-  - **Compounding:** The combination of regular contributions and investment returns accelerates portfolio growth over time.
+Monte Carlo simulations are a mathematical technique used to estimate the possible outcomes of an uncertain event. In the context of investments:
+
+- **Purpose**: To model the potential future performance of an investment portfolio by simulating a large number of possible scenarios.
+- **How It Works**:
+  - **Random Sampling**: The simulations generate random returns based on the historical mean and volatility (standard deviation) of each asset.
+  - **Multiple Paths**: Each simulation represents a different possible future path your investment could take.
+  - **Aggregation**: By running many simulations (e.g., 1,000), we can observe a range of possible outcomes and their probabilities.
+
+### Interpreting the Chart:
+
+- **Shaded Areas**:
+  - The **light blue shaded area** represents the range between the **5th and 95th percentiles**, indicating where 90% of the simulated outcomes fall.
+  - The **darker blue shaded area** represents the range between the **25th and 75th percentiles**, showing where the middle 50% of outcomes lie.
+- **Percentile Lines**:
+  - **5th Percentile (Red Line)**: A **pessimistic** outcome. There's a 95% chance your investment will perform better than this line.
+  - **25th Percentile (Orange Line)**: A **conservative** estimate, showing lower expected returns.
+  - **50th Percentile (Green Line)**: The **median** outcome. There's a 50% chance your investment will perform better or worse than this line.
+  - **75th Percentile (Blue Line)**: An **optimistic** estimate, indicating higher potential returns.
+  - **95th Percentile (Purple Line)**: A **very optimistic** outcome. There's a 5% chance your investment will perform better than this line.
+
+### Value at Risk (VaR):
+
+- **Definition**: VaR is a statistical measure that estimates the potential loss in value of an investment portfolio over a specified time period, given normal market conditions, at a certain confidence level.
+- **In This Dashboard**:
+  - **VaR at 95% Confidence Level**: Indicates that there is a 5% chance your investment could be worth €X or less at the end of the investment horizon.
+  - **Interpretation**: It helps you understand the potential downside risk of your investment.
+
+### Inflation Adjustment:
+
+- **Why Adjust for Inflation**:
+  - **Purchasing Power**: Inflation erodes the purchasing power of money over time.
+  - **Real vs. Nominal Values**: Adjusting for inflation gives you the **real** value of your investment, reflecting what you can actually buy in the future.
+- **In the Simulations**:
+  - All projected values are adjusted for the expected annual inflation rate you've input, providing a more accurate picture of future value.
 
 ### Key Takeaways:
 
-- **Dollar-Cost Averaging:** Investing a fixed amount regularly can reduce the impact of market volatility.
-- **Enhanced Growth Potential:** Regular contributions can lead to a larger portfolio value compared to a lump-sum investment alone.
-- **Risk Mitigation:** Spreading investments over time can mitigate the risk of investing a large amount at an inopportune moment.
+- **Uncertainty in Investments**: The future performance of investments is uncertain, and Monte Carlo simulations help illustrate that uncertainty.
+- **Risk Assessment**: Understanding the range of possible outcomes and the associated risks can help in making informed investment decisions.
+- **Long-Term Perspective**: Investing over a longer horizon generally increases the likelihood of achieving better returns, but it's important to be aware of potential risks along the way.
 
-**Disclaimer:** The projections and simulations are based on historical data and assumptions. They are for illustrative purposes only and do not guarantee future results. Always consider consulting with a financial advisor for personalized advice.
+**Disclaimer**: The projections and simulations are based on historical data and assumptions. They are for illustrative purposes only and do not guarantee future results. Always consider consulting with a financial advisor for personalized advice.
 
 """)
