@@ -6,26 +6,33 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 
+# Set the page configuration for a wider layout
+st.set_page_config(layout="wide")
+
+
 # Function to map ISIN to Ticker Symbol
 def isin_to_ticker(isin):
     isin_ticker_map = {
         # Long-Term Assets
         'IE00B4L5Y983': 'IWDA.AS',  # iShares Core MSCI World UCITS ETF USD (Acc)
-        'IE00BKM4GZ66': 'EIMI.L',   # iShares Core MSCI EM IMI UCITS ETF
-        'US81369Y8030': 'XLF',      # Financial Select Sector SPDR Fund (Sector ETF)
+        'IE00BKM4GZ66': 'EIMI.L',  # iShares Core MSCI EM IMI UCITS ETF
+        'US81369Y8030': 'XLF',  # Financial Select Sector SPDR Fund (Sector ETF)
+        'IE00B0M62Q58': 'ISPA.DE',  # iShares STOXX Global Select Dividend 100 UCITS ETF
         # Add more mappings as needed
     }
     return isin_ticker_map.get(isin, None)
 
+
 # Pre-selected ISIN codes
 default_isins = {
     # Long-Term Investments
-    "MSCI Global ETF ISIN": 'IE00B4L5Y983',
-    "Developing Countries ETF ISIN": 'IE00BKM4GZ66',
+    "Global Equity ETF ISIN": 'IE00B4L5Y983',
+    "Emerging Markets ETF ISIN": 'IE00BKM4GZ66',
+    "Dividend-Focused ETF ISIN": 'IE00B0M62Q58',
     "Sector-Specific ETF ISIN": 'US81369Y8030',
 }
 
-st.title("Investment Portfolio Dashboard")
+st.title("Investment Portfolio Dashboard with Monthly Savings Plan")
 
 st.write("---")
 
@@ -47,9 +54,9 @@ with amount_col:
         format="%d"
     )
 
-    # Long-Term Investment
+    # Long-Term Lump-Sum Investment
     long_term_investment = st.number_input(
-        "Long-Term Investment Amount (€)",
+        "Long-Term Lump-Sum Investment Amount (€)",
         min_value=0,
         value=10000,
         step=1000,
@@ -79,6 +86,28 @@ with horizon_col:
 
 st.write("---")
 
+# Monthly Savings Plan
+st.header("Monthly Savings Plan for ETFs")
+
+monthly_savings_enabled = st.checkbox("Enable Monthly Savings Plan", value=False)
+
+if monthly_savings_enabled:
+    monthly_savings_amount = st.number_input(
+        "Monthly Savings Amount (€)",
+        min_value=0,
+        value=500,
+        step=50,
+        format="%d"
+    )
+    total_months = int(long_term_horizon * 12)
+    total_monthly_investment = monthly_savings_amount * total_months
+    st.write(
+        f"**Total Amount Invested Through Monthly Savings Over {long_term_horizon} Years:** €{total_monthly_investment:,.2f}")
+else:
+    monthly_savings_amount = 0
+
+st.write("---")
+
 # Inflation Rate Input
 st.header("Assumed Inflation Rate")
 inflation_rate = st.number_input(
@@ -95,30 +124,21 @@ st.write("---")
 # Short-Term Investment Rates
 st.header("Short-Term Investment Rates")
 savings_rate = st.number_input(
-    "High-Yield Savings Account Annual Rate (%)",
+    "High-Yield Savings Account/CDs Annual Rate (%)",
     min_value=0.0,
-    value=1.5,
+    value=3.75,
     step=0.1,
-    format="%.1f",
-    help="Enter the annual interest rate for the high-yield savings account."
+    format="%.2f",
+    help="Enter the annual interest rate for the high-yield savings account or CDs."
 ) / 100
 
-gov_bonds_rate = st.number_input(
-    "Government Bonds Annual Rate (%)",
+corporate_bond_rate = st.number_input(
+    "Corporate Bond Funds Annual Rate (%)",
     min_value=0.0,
-    value=2.0,
+    value=2.5,
     step=0.1,
-    format="%.1f",
-    help="Enter the annual interest rate for government bonds."
-) / 100
-
-corp_bonds_rate = st.number_input(
-    "Corporate Bonds Annual Rate (%)",
-    min_value=0.0,
-    value=3.0,
-    step=0.1,
-    format="%.1f",
-    help="Enter the annual interest rate for corporate bonds."
+    format="%.2f",
+    help="Enter the annual interest rate for corporate bond funds."
 ) / 100
 
 st.write("---")
@@ -128,85 +148,95 @@ st.header("Asset Allocations")
 
 # Short-Medium Term Allocations
 st.subheader("Short-Medium Term Asset Allocation (%)")
-short_alloc_col1, short_alloc_col2, short_alloc_col3 = st.columns(3)
+short_alloc_col1, short_alloc_col2 = st.columns(2)
 
 with short_alloc_col1:
     savings_pct = st.slider(
-        "High-Yield Savings Account (%)",
+        "High-Yield Savings Account/CDs (%)",
         min_value=0,
         max_value=100,
-        value=34,
+        value=50,
         step=1
     )
 
 with short_alloc_col2:
-    gov_bonds_pct = st.slider(
-        "Government Bonds (%)",
+    corporate_bond_pct = st.slider(
+        "Corporate Bond Funds (%)",
         min_value=0,
         max_value=100,
-        value=33,
-        step=1
-    )
-
-with short_alloc_col3:
-    corp_bonds_pct = st.slider(
-        "Corporate Bonds (%)",
-        min_value=0,
-        max_value=100,
-        value=33,
+        value=50,
         step=1
     )
 
 # Check allocation sum
-short_term_total_alloc = savings_pct + gov_bonds_pct + corp_bonds_pct
+short_term_total_alloc = savings_pct + corporate_bond_pct
 if short_term_total_alloc != 100:
     st.error("Short-Medium Term allocations must sum up to 100%.")
 
 # Long-Term Allocations
 st.subheader("Long-Term Asset Allocation (%)")
-long_alloc_col1, long_alloc_col2, long_alloc_col3 = st.columns(3)
+long_alloc_col1, long_alloc_col2 = st.columns(2)
+long_alloc_col3, long_alloc_col4 = st.columns(2)
 
 with long_alloc_col1:
     msci_global_pct = st.slider(
-        "MSCI Global ETF (%)",
+        "Global Equity ETF (%)",
         min_value=0,
         max_value=100,
-        value=34,
+        value=50,
         step=1
     )
 
 with long_alloc_col2:
     developing_countries_pct = st.slider(
-        "Developing Countries ETF (%)",
+        "Emerging Markets ETF (%)",
         min_value=0,
         max_value=100,
-        value=33,
+        value=25,
         step=1
     )
 
 with long_alloc_col3:
+    dividend_focused_pct = st.slider(
+        "Dividend-Focused ETF (%)",
+        min_value=0,
+        max_value=100,
+        value=15,
+        step=1
+    )
+
+with long_alloc_col4:
     sector_specific_pct = st.slider(
         "Sector-Specific ETF (%)",
         min_value=0,
         max_value=100,
-        value=33,
+        value=10,
         step=1
     )
 
 # Check allocation sum
-long_term_total_alloc = msci_global_pct + developing_countries_pct + sector_specific_pct
+long_term_total_alloc = (
+        msci_global_pct
+        + developing_countries_pct
+        + dividend_focused_pct
+        + sector_specific_pct
+)
 if long_term_total_alloc != 100:
     st.error("Long-Term allocations must sum up to 100%.")
 
 # Long-Term ETF Selection
 st.subheader("Long-Term ETFs Selection")
 msci_global_isin = st.text_input(
-    "MSCI Global ETF ISIN",
-    value=default_isins["MSCI Global ETF ISIN"]
+    "Global Equity ETF ISIN",
+    value=default_isins["Global Equity ETF ISIN"]
 )
 developing_countries_isin = st.text_input(
-    "Developing Countries ETF ISIN",
-    value=default_isins["Developing Countries ETF ISIN"]
+    "Emerging Markets ETF ISIN",
+    value=default_isins["Emerging Markets ETF ISIN"]
+)
+dividend_focused_isin = st.text_input(
+    "Dividend-Focused ETF ISIN",
+    value=default_isins["Dividend-Focused ETF ISIN"]
 )
 sector_specific_isin = st.text_input(
     "Sector-Specific ETF ISIN",
@@ -215,31 +245,33 @@ sector_specific_isin = st.text_input(
 
 msci_global_ticker = isin_to_ticker(msci_global_isin)
 developing_countries_ticker = isin_to_ticker(developing_countries_isin)
+dividend_focused_ticker = isin_to_ticker(dividend_focused_isin)
 sector_specific_ticker = isin_to_ticker(sector_specific_isin)
 
 st.write("---")
 
 # Convert annual rates to monthly rates for short-term investments
 rates = {
-    "High-Yield Savings Account": savings_rate,
-    "Government Bonds": gov_bonds_rate,
-    "Corporate Bonds": corp_bonds_rate
+    "High-Yield Savings Account/CDs": savings_rate,
+    "Corporate Bond Funds": corporate_bond_rate,
 }
 
 monthly_rates = {}
 for asset, annual_rate in rates.items():
-    monthly_rate = (1 + annual_rate) ** (1/12) - 1
+    monthly_rate = (1 + annual_rate) ** (1 / 12) - 1
     monthly_rates[asset] = monthly_rate
 
 # Collect all ETFs
 etf_tickers = {
-    "MSCI Global ETF": msci_global_ticker,
-    "Developing Countries ETF": developing_countries_ticker,
+    "Global Equity ETF": msci_global_ticker,
+    "Emerging Markets ETF": developing_countries_ticker,
+    "Dividend-Focused ETF": dividend_focused_ticker,
     "Sector-Specific ETF": sector_specific_ticker
 }
 
 # Remove None tickers
 etf_tickers = {k: v for k, v in etf_tickers.items() if v is not None}
+
 
 # Fetch historical returns for ETFs
 @st.cache_data
@@ -248,10 +280,12 @@ def get_etf_annual_stats(ticker):
     if data.empty:
         return None, None
     data['Daily Return'] = data['Adj Close'].pct_change()
+    data = data.dropna()
     annual_returns = data['Daily Return'].resample('Y').apply(lambda x: (1 + x).prod() - 1)
     mean_return = annual_returns.mean()
     std_return = annual_returns.std()
     return mean_return, std_return
+
 
 # Fetch and store annual mean and std returns
 etf_stats = {}
@@ -266,66 +300,92 @@ for etf_name, ticker in etf_tickers.items():
 
 # Short-Medium Term Calculations
 savings_alloc = savings_pct / 100
-gov_bonds_alloc = gov_bonds_pct / 100
-corp_bonds_alloc = corp_bonds_pct / 100
+corporate_bond_alloc = corporate_bond_pct / 100
 
 # Calculate future values using monthly compounding
-savings_future = short_term_investment * savings_alloc * (1 + monthly_rates["High-Yield Savings Account"]) ** short_term_horizon
-gov_bonds_future = short_term_investment * gov_bonds_alloc * (1 + monthly_rates["Government Bonds"]) ** short_term_horizon
-corp_bonds_future = short_term_investment * corp_bonds_alloc * (1 + monthly_rates["Corporate Bonds"]) ** short_term_horizon
+savings_future = short_term_investment * savings_alloc * (
+            1 + monthly_rates["High-Yield Savings Account/CDs"]) ** short_term_horizon
+corporate_bond_future = short_term_investment * corporate_bond_alloc * (
+            1 + monthly_rates["Corporate Bond Funds"]) ** short_term_horizon
 
-short_term_total_future = savings_future + gov_bonds_future + corp_bonds_future
+short_term_total_future = savings_future + corporate_bond_future
 short_term_total_gain = short_term_total_future - short_term_investment
 
 # Adjust for inflation
-inflation_monthly_rate = (1 + inflation_rate) ** (1/12) - 1
+inflation_monthly_rate = (1 + inflation_rate) ** (1 / 12) - 1
 inflation_adjustment = (1 + inflation_monthly_rate) ** short_term_horizon
 short_term_total_future_real = short_term_total_future / inflation_adjustment
 
 # Long-Term Calculations
 msci_global_alloc = msci_global_pct / 100
 developing_countries_alloc = developing_countries_pct / 100
+dividend_focused_alloc = dividend_focused_pct / 100
 sector_specific_alloc = sector_specific_pct / 100
 
-# Monte Carlo Simulations for Long-Term Investments
-if all(etf in etf_stats for etf in ["MSCI Global ETF", "Developing Countries ETF", "Sector-Specific ETF"]):
+# Monte Carlo Simulations for Long-Term Investments with Monthly Savings
+if all(etf in etf_stats for etf in etf_tickers.keys()):
     num_simulations = 1000
+    total_months = int(long_term_horizon * 12)
     projection_years = np.arange(0, int(long_term_horizon) + 1)
-    simulation_results = pd.DataFrame({'Year': projection_years})
+
+    # Pre-allocate a NumPy array to hold all simulations
+    simulation_array = np.zeros((len(projection_years), num_simulations))
 
     for sim in range(num_simulations):
-        total_portfolio = np.zeros(len(projection_years))
-        for etf_name in ["MSCI Global ETF", "Developing Countries ETF", "Sector-Specific ETF"]:
+        total_portfolio = np.zeros(total_months + 1)
+        for etf_name in etf_tickers.keys():
             stats = etf_stats[etf_name]
             alloc = 0
-            if etf_name == "MSCI Global ETF":
+            if etf_name == "Global Equity ETF":
                 alloc = msci_global_alloc
-            elif etf_name == "Developing Countries ETF":
+            elif etf_name == "Emerging Markets ETF":
                 alloc = developing_countries_alloc
+            elif etf_name == "Dividend-Focused ETF":
+                alloc = dividend_focused_alloc
             elif etf_name == "Sector-Specific ETF":
                 alloc = sector_specific_alloc
 
             initial_investment = long_term_investment * alloc
-            # Simulate annual returns
-            random_returns = np.random.normal(stats['mean'], stats['std'], int(long_term_horizon))
-            cumulative_returns = np.cumprod(1 + random_returns)
-            # Include initial investment year
-            cumulative_returns = np.insert(cumulative_returns, 0, 1.0)
-            future_values = initial_investment * cumulative_returns
-            total_portfolio += future_values
+            monthly_investment = monthly_savings_amount * alloc if monthly_savings_enabled else 0
 
-        simulation_results[f"Simulation_{sim}"] = total_portfolio
+            # Simulate monthly returns
+            monthly_mean = (1 + stats['mean']) ** (1 / 12) - 1
+            monthly_std = stats['std'] / np.sqrt(12)
+            random_returns = np.random.normal(monthly_mean, monthly_std, total_months)
+
+            # Initialize portfolio value array
+            portfolio_values = np.zeros(total_months + 1)
+            portfolio_values[0] = initial_investment
+
+            # Simulate portfolio growth with monthly contributions
+            for month in range(1, total_months + 1):
+                # Add monthly investment
+                portfolio_values[month] = (portfolio_values[month - 1] + monthly_investment) * (
+                            1 + random_returns[month - 1])
+
+            total_portfolio += portfolio_values
+
+        # Annual portfolio values
+        annual_portfolio_values = total_portfolio[::12]
+        simulation_array[:, sim] = annual_portfolio_values
+
+    # Create the DataFrame after the loop
+    simulation_results = pd.DataFrame(simulation_array, columns=[f"Simulation_{i}" for i in range(num_simulations)])
+    simulation_results.insert(0, 'Year', projection_years)
 
     # Adjust for inflation
     inflation_adjustment_long = (1 + inflation_rate) ** projection_years
-    for col in simulation_results.columns[1:]:
-        simulation_results[col] = simulation_results[col] / inflation_adjustment_long
+    simulation_results.iloc[:, 1:] = simulation_results.iloc[:, 1:].div(inflation_adjustment_long, axis=0)
 
     # Calculate percentiles
     percentiles = [5, 25, 50, 75, 95]
-    percentile_values = simulation_results.iloc[:, 1:].quantile(q=np.array(percentiles)/100, axis=1)
-    percentile_df = pd.DataFrame(percentile_values.values.T, columns=[f"{p}th Percentile" for p in percentiles])
+    percentile_values = np.percentile(simulation_array / inflation_adjustment_long.reshape(-1, 1), q=percentiles,
+                                      axis=1)
+    percentile_df = pd.DataFrame(percentile_values.T, columns=[f"{p}th Percentile" for p in percentiles])
     percentile_df['Year'] = projection_years
+
+    # Re-order columns
+    percentile_df = percentile_df[['Year'] + [f"{p}th Percentile" for p in percentiles]]
 
     # Value at Risk (VaR) Calculation at 95% confidence level
     final_values = simulation_results.iloc[-1, 1:]
@@ -338,17 +398,15 @@ else:
 st.header("Short-Medium Term Investment Results")
 
 short_term_breakdown = pd.DataFrame({
-    'Investment Type': ['High-Yield Savings Account', 'Government Bonds', 'Corporate Bonds'],
+    'Investment Type': ['High-Yield Savings Account/CDs', 'Corporate Bond Funds'],
     'Allocation (€)': [
         short_term_investment * savings_alloc,
-        short_term_investment * gov_bonds_alloc,
-        short_term_investment * corp_bonds_alloc
+        short_term_investment * corporate_bond_alloc,
     ],
-    'Future Value (€)': [savings_future, gov_bonds_future, corp_bonds_future],
+    'Future Value (€)': [savings_future, corporate_bond_future],
     'Inflation Adjusted (€)': [
         (savings_future / inflation_adjustment),
-        (gov_bonds_future / inflation_adjustment),
-        (corp_bonds_future / inflation_adjustment)
+        (corporate_bond_future / inflation_adjustment),
     ]
 })
 
@@ -373,23 +431,22 @@ st.header("Short-Medium Term Investment Growth Over Time")
 time_horizon = np.arange(0, short_term_horizon + 1)  # From month 0 to the investment horizon
 
 # Calculate balances for each month
-savings_balance = short_term_investment * savings_alloc * (1 + monthly_rates["High-Yield Savings Account"]) ** time_horizon
-gov_bonds_balance = short_term_investment * gov_bonds_alloc * (1 + monthly_rates["Government Bonds"]) ** time_horizon
-corp_bonds_balance = short_term_investment * corp_bonds_alloc * (1 + monthly_rates["Corporate Bonds"]) ** time_horizon
+savings_balance = short_term_investment * savings_alloc * (
+            1 + monthly_rates["High-Yield Savings Account/CDs"]) ** time_horizon
+corporate_bond_balance = short_term_investment * corporate_bond_alloc * (
+            1 + monthly_rates["Corporate Bond Funds"]) ** time_horizon
 
 # Adjust balances for inflation
 inflation_adjustments = (1 + inflation_monthly_rate) ** time_horizon
 savings_balance_real = savings_balance / inflation_adjustments
-gov_bonds_balance_real = gov_bonds_balance / inflation_adjustments
-corp_bonds_balance_real = corp_bonds_balance / inflation_adjustments
-total_balance_real = savings_balance_real + gov_bonds_balance_real + corp_bonds_balance_real
+corporate_bond_balance_real = corporate_bond_balance / inflation_adjustments
+total_balance_real = savings_balance_real + corporate_bond_balance_real
 
 # Create a DataFrame for plotting
 growth_df = pd.DataFrame({
     'Month': time_horizon,
-    'High-Yield Savings Account': savings_balance_real,
-    'Government Bonds': gov_bonds_balance_real,
-    'Corporate Bonds': corp_bonds_balance_real,
+    'High-Yield Savings Account/CDs': savings_balance_real,
+    'Corporate Bond Funds': corporate_bond_balance_real,
     'Total Portfolio': total_balance_real
 })
 
@@ -412,7 +469,8 @@ st.header("Long-Term Investment Results")
 
 if 'simulation_results' in locals():
     st.write(f"**Expected Final Portfolio Value (Inflation Adjusted):** €{expected_final_value_real:,.2f}")
-    st.write(f"**5th Percentile Final Portfolio Value (Inflation Adjusted VaR at 95% Confidence Level):** €{VaR_95_real:,.2f}")
+    st.write(
+        f"**5th Percentile Final Portfolio Value (Inflation Adjusted VaR at 95% Confidence Level):** €{VaR_95_real:,.2f}")
 
     # Plot the projections with shaded areas
     fig = go.Figure()
@@ -467,78 +525,50 @@ if 'simulation_results' in locals():
             name=f'{percentile}th Percentile',
             line=dict(color=colors[idx], width=2),
             marker=dict(size=6),
-            text=[f"Year {int(year)}: €{value:,.2f}" for year, value in zip(percentile_df['Year'], percentile_df[f"{percentile}th Percentile"])],
+            text=[f"Year {int(year)}: €{value:,.2f}" for year, value in
+                  zip(percentile_df['Year'], percentile_df[f"{percentile}th Percentile"])],
             hovertemplate='%{text}<extra></extra>'
         ))
 
     # Adjust legend placement and styling
     fig.update_layout(
-        title='Projected Long-Term Investment Growth (Inflation Adjusted)',
+        title='Projected Long-Term Investment Growth with Monthly Savings (Inflation Adjusted)',
         xaxis_title='Year',
         yaxis_title='Portfolio Value (€)',
         hovermode='closest',
         legend=dict(
-            orientation='h',
+            orientation='v',
             yanchor='top',
-            y=-0.2,  # Move legend below the chart
-            xanchor='center',
-            x=0.5,
-            font=dict(size=12),
-            bgcolor='rgba(255,255,255,0.5)'  # Semi-transparent background
+            y=1.0,
+            xanchor='left',
+            x=1.02,
+            font=dict(size=10),
+            bgcolor='rgba(255,255,255,0.5)'
         ),
-        margin=dict(l=50, r=50, t=80, b=120)  # Adjust margins to accommodate legend
+        margin=dict(l=50, r=150, t=80, b=80),  # Adjust margins to accommodate legend
+        width=900  # Set a fixed width for better visibility
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, use_container_width=False)
 else:
     st.warning("Long-term investment results are not available due to insufficient data.")
 
 st.write("""
-## Understanding Monte Carlo Simulations and Value at Risk (VaR)
+## Understanding Monte Carlo Simulations with Monthly Savings Plan
 
-### Monte Carlo Simulations:
+### Incorporating Monthly Savings:
 
-Monte Carlo simulations are a mathematical technique used to estimate the possible outcomes of an uncertain event. In the context of investments:
-
-- **Purpose**: To model the potential future performance of an investment portfolio by simulating a large number of possible scenarios.
-- **How It Works**:
-  - **Random Sampling**: The simulations generate random returns based on the historical mean and volatility (standard deviation) of each asset.
-  - **Multiple Paths**: Each simulation represents a different possible future path your investment could take.
-  - **Aggregation**: By running many simulations (e.g., 1,000), we can observe a range of possible outcomes and their probabilities.
-
-### Interpreting the Chart:
-
-- **Shaded Areas**:
-  - The **light blue shaded area** represents the range between the **5th and 95th percentiles**, indicating where 90% of the simulated outcomes fall.
-  - The **darker blue shaded area** represents the range between the **25th and 75th percentiles**, showing where the middle 50% of outcomes lie.
-- **Percentile Lines**:
-  - **5th Percentile (Red Line)**: A **pessimistic** outcome. There's a 95% chance your investment will perform better than this line.
-  - **25th Percentile (Orange Line)**: A **conservative** estimate, showing lower expected returns.
-  - **50th Percentile (Green Line)**: The **median** outcome. There's a 50% chance your investment will perform better or worse than this line.
-  - **75th Percentile (Blue Line)**: An **optimistic** estimate, indicating higher potential returns.
-  - **95th Percentile (Purple Line)**: A **very optimistic** outcome. There's a 5% chance your investment will perform better than this line.
-
-### Value at Risk (VaR):
-
-- **Definition**: VaR is a statistical measure that estimates the potential loss in value of an investment portfolio over a specified time period, given normal market conditions, at a certain confidence level.
-- **In This Dashboard**:
-  - **VaR at 95% Confidence Level**: Indicates that there is a 5% chance your investment could be worth €X or less at the end of the investment horizon.
-  - **Interpretation**: It helps you understand the potential downside risk of your investment.
-
-### Inflation Adjustment:
-
-- **Why Adjust for Inflation**:
-  - **Purchasing Power**: Inflation erodes the purchasing power of money over time.
-  - **Real vs. Nominal Values**: Adjusting for inflation gives you the **real** value of your investment, reflecting what you can actually buy in the future.
-- **In the Simulations**:
-  - All projected values are adjusted for the expected annual inflation rate you've input, providing a more accurate picture of future value.
+- **Systematic Investment Plan (SIP):** Regular investments over time can significantly impact the growth of your portfolio due to the compounding effect.
+- **Simulation Adjustments:**
+  - **Cash Flows:** At each time step, monthly contributions are added to the portfolio before applying the simulated return.
+  - **Compounding:** The combination of regular contributions and investment returns accelerates portfolio growth over time.
 
 ### Key Takeaways:
 
-- **Uncertainty in Investments**: The future performance of investments is uncertain, and Monte Carlo simulations help illustrate that uncertainty.
-- **Risk Assessment**: Understanding the range of possible outcomes and the associated risks can help in making informed investment decisions.
-- **Long-Term Perspective**: Investing over a longer horizon generally increases the likelihood of achieving better returns, but it's important to be aware of potential risks along the way.
+- **Dollar-Cost Averaging:** Investing a fixed amount regularly can reduce the impact of market volatility.
+- **Enhanced Growth Potential:** Regular contributions can lead to a larger portfolio value compared to a lump-sum investment alone.
+- **Risk Mitigation:** Spreading investments over time can mitigate the risk of investing a large amount at an inopportune moment.
 
-**Disclaimer**: The projections and simulations are based on historical data and assumptions. They are for illustrative purposes only and do not guarantee future results. Always consider consulting with a financial advisor for personalized advice.
+**Disclaimer:** The projections and simulations are based on historical data and assumptions. They are for illustrative purposes only and do not guarantee future results. Always consider consulting with a financial advisor for personalized advice.
 
 """)
